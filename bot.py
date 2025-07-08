@@ -8,6 +8,16 @@ from datetime import datetime, timedelta
 import asyncio
 import sqlite3
 import os # Import os for environment variables
+from flask import Flask
+import threading
+
+# Flask app for Render health check
+app = Flask(__name__)
+
+@app.route("/")
+def index():
+    return "✅ Telegram bot is running on Render!"
+
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
