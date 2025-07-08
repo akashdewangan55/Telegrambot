@@ -1,13 +1,27 @@
 import logging
 import os
 import sqlite3
+import threading
 from datetime import datetime, timedelta
-
+from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler, ContextTypes
 )
 from telegram.error import BadRequest
+
+# --- Flask App for Render Health Check ---
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "✅ Telegram bot is running on Render!"
+
+# --- Logging ---
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO
+)
 
 # --- Configuration ---
 BONUS_AMOUNT = 1
@@ -16,12 +30,6 @@ WITHDRAW_THRESHOLD = 50
 CHANNEL_LINK = "https://t.me/dailyearn11"
 CHECK_CHANNEL_ID = -1001441974665
 DB_NAME = "bot_data.db"
-
-# --- Logging ---
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO
-)
 
 # --- Database Functions ---
 def init_db():
@@ -179,14 +187,24 @@ async def safe_edit(query, text, markup, **kwargs):
         else:
             raise
 
-# --- Initialize DB and Application ---
-init_db()
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
-application = None
-
-if BOT_TOKEN:
+# --- Start Telegram Bot in Thread ---
+def start_bot():
+    init_db()
+    BOT_TOKEN = os.environ.get("BOT_TOKEN")
+    if not BOT_TOKEN:
+        logging.error("⚠️ BOT_TOKEN not set. Telegram bot will not start.")
+        return
     application = Application.builder().token(BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(handle_buttons))
-else:
-    logging.error("⚠️ BOT_TOKEN not set. Telegram bot will not start.")
+    logging.info("🤖 Telegram bot is starting...")
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
+
+if __name__ == "__main__":
+    # Start Telegram bot in background thread
+    threading.Thread(target=start_bot, daemon=True).start()
+
+    # Start Flask app (required for Render)
+    port = int(os.environ.get("PORT", 10000))
+    logging.info(f"🌐 Flask app starting on port {port}")
+    app.run(host="0.0.0.0", port=port)
