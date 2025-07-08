@@ -1,20 +1,16 @@
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    Application, CommandHandler, CallbackQueryHandler,
-    ContextTypes
-)
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 from datetime import datetime, timedelta
-import asyncio
 import sqlite3
 import os
 from flask import Flask
 import threading
 
 # Flask app for Render health check
-flask_app = Flask(__name__)
+app = Flask(__name__)
 
-@flask_app.route("/")
+@app.route("/")
 def index():
     return "✅ Telegram bot and Flask app are running on Render!"
 
@@ -23,7 +19,6 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
 )
-
 logger = logging.getLogger(__name__)
 
 # --- Configuration ---
@@ -54,6 +49,7 @@ def init_db():
             )
         ''')
         conn.commit()
+    logger.info("📦 Database initialized.")
 
 def get_user_data(user_id: int):
     with sqlite3.connect(DB_NAME) as conn:
@@ -151,8 +147,8 @@ async def send_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("Main Menu:", reply_markup=reply_markup)
 
-# --- Main Function ---
-async def run_bot():
+# --- Start Telegram Bot ---
+def start_telegram_bot():
     init_db()
     BOT_TOKEN = os.getenv("BOT_TOKEN")
     if not BOT_TOKEN:
@@ -162,13 +158,11 @@ async def run_bot():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(handle_buttons))
     logger.info("🤖 Telegram bot is starting...")
-    await application.run_polling()
+    application.run_polling()
 
-def run_flask():
+# --- Main ---
+if __name__ == "__main__":
+    threading.Thread(target=start_telegram_bot).start()
     port = int(os.environ.get("PORT", 10000))
     logger.info(f"🌐 Flask app starting on port {port}")
-    flask_app.run(host="0.0.0.0", port=port)
-
-if __name__ == "__main__":
-    threading.Thread(target=run_flask).start()
-    asyncio.run(run_bot())
+    app.run(host="0.0.0.0", port=port)
