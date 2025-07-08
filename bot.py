@@ -171,7 +171,6 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await safe_edit(query, info, get_back_button(), parse_mode="Markdown")
 
 async def safe_edit(query, text, markup, **kwargs):
-    """Avoids BadRequest when text & markup are unchanged."""
     try:
         await query.edit_message_text(text, reply_markup=markup, **kwargs)
     except BadRequest as e:
@@ -180,13 +179,14 @@ async def safe_edit(query, text, markup, **kwargs):
         else:
             raise
 
-# --- Initialize DB and App ---
+# --- Initialize DB and Application ---
 init_db()
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
-if not BOT_TOKEN:
-    logging.error("BOT_TOKEN not set in environment!")
-    exit(1)
+application = None
 
-application = Application.builder().token(BOT_TOKEN).build()
-application.add_handler(CommandHandler("start", start))
-application.add_handler(CallbackQueryHandler(handle_buttons))
+if BOT_TOKEN:
+    application = Application.builder().token(BOT_TOKEN).build()
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(handle_buttons))
+else:
+    logging.error("⚠️ BOT_TOKEN not set. Telegram bot will not start.")
