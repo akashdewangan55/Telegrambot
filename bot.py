@@ -1,39 +1,22 @@
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    Application, CommandHandler, CallbackQueryHandler,
-    ContextTypes
-)
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 from datetime import datetime, timedelta
-import asyncio
 import sqlite3
-import os # Import os for environment variables
-from flask import Flask
-import threading
-
-# Flask app for Render health check
-app = Flask(__name__)
-
-@app.route("/")
-def index():
-    return "✅ Telegram bot is running on Render!"
-
-
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
+import os
 
 # --- Configuration Constants ---
 BONUS_AMOUNT = 1
 REFERRAL_REWARD = 5
 WITHDRAW_THRESHOLD = 50
 CHANNEL_LINK = "https://t.me/dailyearn11"
-CHECK_CHANNEL_ID = -1001441974665 # Replace with your actual channel ID
-
-# --- Database Configuration ---
+CHECK_CHANNEL_ID = -1001441974665
 DB_NAME = 'bot_data.db'
 
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 def init_db():
     """Initializes the SQLite database and creates the users table if it doesn't exist."""
     with sqlite3.connect(DB_NAME) as conn:
