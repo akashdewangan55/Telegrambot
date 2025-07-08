@@ -6,7 +6,8 @@ from telegram.ext import (
 )
 from datetime import datetime, timedelta
 import asyncio
-import sqlite3 # Import sqlite3
+import sqlite3
+import os # Import os for environment variables
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -14,7 +15,6 @@ logging.basicConfig(
 )
 
 # --- Configuration Constants ---
-# USERS = {} # This will no longer be used for permanent storage
 BONUS_AMOUNT = 1
 REFERRAL_REWARD = 5
 WITHDRAW_THRESHOLD = 50
@@ -284,6 +284,9 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == 'show_withdraw':
         user = get_user_data(user_id)
         if user['balance'] >= WITHDRAW_THRESHOLD:
+            # In a real-world scenario, you would integrate a payment gateway here
+            # or collect payment details from the user. For this example, we'll
+            # simulate a withdrawal by resetting the balance.
             update_user_balance(user_id, 0)
             await query.edit_message_text(
                 "✅ Withdrawal requested!\n"
@@ -314,32 +317,19 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # --- Main Bot Runner ---
 
-async def run_bot():
-    global application
-    
+if __name__ == "__main__":
     init_db() # Initialize the database when the bot starts
     
-    application = Application.builder().token("7950712207:AAHMIek-JXLy6fLrQMBHk-2hzFXdY1d0HG8").build()
+    # Get the bot token from environment variables
+    BOT_TOKEN = os.getenv("BOT_TOKEN")
+    if not BOT_TOKEN:
+        logging.error("BOT_TOKEN environment variable not set.")
+        exit(1) # Exit if token is not set
+
+    application = Application.builder().token(BOT_TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(handle_buttons))
 
-    print("🤖 Bot is running...")
-
-    await application.initialize()
-    await application.start()
-    await application.updater.start_polling()
-
-    while True:
-        await asyncio.sleep(1)
-
-
-if __name__ == "__main__":
-    try:
-        asyncio.run(run_bot())
-    except RuntimeError as e:
-        if "already running" in str(e):
-            print("⚠️ Event loop already running. Using create_task().")
-            asyncio.create_task(run_bot())
-        else:
-            raise
+    logging.info("🤖 Bot is starting polling...")
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
