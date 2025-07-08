@@ -327,8 +327,9 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # --- Main Bot Runner ---
 
-async def main():
-    # Start Telegram bot
+@app.before_first_request
+def start_bot():
+    logging.info("🤖 Starting Telegram bot...")
     init_db()
     BOT_TOKEN = os.getenv("BOT_TOKEN")
     if not BOT_TOKEN:
@@ -339,16 +340,5 @@ async def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(handle_buttons))
 
-    logging.info("🤖 Telegram bot is starting polling...")
-
-    # Start Flask app in asyncio thread
-    loop = asyncio.get_event_loop()
-    flask_future = loop.run_in_executor(None, lambda: app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000))))
-    telegram_future = application.run_polling(allowed_updates=Update.ALL_TYPES)
-
-    await asyncio.gather(flask_future, telegram_future)
-
-if __name__ == "__main__":
-    asyncio.run(main())
-
-
+    # Start polling in background thread
+    threading.Thread(target=lambda: application.run_polling(allowed_updates=Update.ALL_TYPES), daemon=True).start()
