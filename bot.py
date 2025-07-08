@@ -327,18 +327,19 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # --- Main Bot Runner ---
 
-def run_telegram_bot():
-    logging.info("🤖 Starting Telegram bot...")
+def run_bot():
     init_db()
     BOT_TOKEN = os.getenv("BOT_TOKEN")
     if not BOT_TOKEN:
         logging.error("BOT_TOKEN environment variable not set.")
         exit(1)
 
-    telegram_app = Application.builder().token(BOT_TOKEN).build()
-    telegram_app.add_handler(CommandHandler("start", start))
-    telegram_app.add_handler(CallbackQueryHandler(handle_buttons))
-    telegram_app.run_polling(allowed_updates=Update.ALL_TYPES)
+    application = Application.builder().token(BOT_TOKEN).build()
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(handle_buttons))
 
-# Start bot in a background thread when Flask starts
-threading.Thread(target=run_telegram_bot, daemon=True).start()
+    logging.info("🤖 Telegram bot is starting polling...")
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
+
+if __name__ == "__main__":
+    run_bot()
