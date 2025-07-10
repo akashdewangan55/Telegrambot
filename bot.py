@@ -36,6 +36,15 @@ def init_db():
                 ref_by INTEGER
             )
         ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS referrals (
+                referrer_id INTEGER,
+                referred_id INTEGER,
+                PRIMARY KEY (referrer_id, referred_id),
+                FOREIGN KEY (referrer_id) REFERENCES users(user_id),
+                FOREIGN KEY (referred_id) REFERENCES users(user_id)
+            )
+        ''')
         conn.commit()
 
 
@@ -54,9 +63,8 @@ def get_user_data(user_id: int):
             else:
                 user_data['last_bonus'] = None
 
-            # Count referrals dynamically from users.ref_by
-            cursor.execute('SELECT COUNT(*) FROM users WHERE ref_by = ?', (user_id,))
-            user_data['referral_count'] = cursor.fetchone()[0]
+            cursor.execute('SELECT referred_id FROM referrals WHERE referrer_id = ?', (user_id,))
+            user_data['referrals'] = [row[0] for row in cursor.fetchall()]
             return user_data
         return None
 
@@ -84,6 +92,15 @@ def update_user_last_bonus(user_id: int, last_bonus_time: datetime):
         cursor = conn.cursor()
         cursor.execute('UPDATE users SET last_bonus = ? WHERE user_id = ?',
                        (last_bonus_time.isoformat(), user_id))
+        conn.commit()
+
+
+def add_referral(referrer_id: int, referred_id: int):
+    """Adds a referral entry to the database (ignores duplicates)."""
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute('INSERT OR IGNORE INTO referrals (referrer_id, referred_id) VALUES (?, ?)',
+                       (referrer_id, referred_id))
         conn.commit()
 
 
@@ -176,18 +193,28 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logging.info(f"New user {user_id} created. Referred by: {ref_by_id}")
 
         if ref_by_id:
-            referrer_data = get_user_data(ref_by_id)
-            if referrer_data:
-                new_referrer_balance = referrer_data['balance'] + REFERRAL_REWARD
-                update_user_balance(ref_by_id, new_referrer_balance)
-                logging.info(f"Referral: {ref_by_id} earned ₹{REFERRAL_REWARD} for referring {user_id}")
-                try:
-                    await application.bot.send_message(
-                        chat_id=ref_by_id,
-                        text=f"🎉 Congratulations! Your friend {update.effective_user.first_name} ({user_id}) joined using your link and you earned ₹{REFERRAL_REWARD}!"
-                    )
-                except Exception as e:
-                    logging.error(f"Could not send referral message to {ref_by_id}: {e}")
+            existing_referral = False
+            with sqlite3.connect(DB_NAME) as conn:
+                cursor = conn.cursor()
+                cursor.execute('SELECT 1 FROM referrals WHERE referrer_id = ? AND referred_id = ?',
+                               (ref_by_id, user_id))
+                if cursor.fetchone():
+                    existing_referral = True
+
+            if not existing_referral:
+                referrer_data = get_user_data(ref_by_id)
+                if referrer_data:
+                    new_referrer_balance = referrer_data['balance'] + REFERRAL_REWARD
+                    update_user_balance(ref_by_id, new_referrer_balance)
+                    add_referral(ref_by_id, user_id)
+                    logging.info(f"Referral: {ref_by_id} earned ₹{REFERRAL_REWARD} for referring {user_id}")
+                    try:
+                        await application.bot.send_message(
+                            chat_id=ref_by_id,
+                            text=f"🎉 Congratulations! Your friend {update.effective_user.first_name} ({user_id}) joined using your link and you earned ₹{REFERRAL_REWARD}!"
+                        )
+                    except Exception as e:
+                        logging.error(f"Could not send referral message to {ref_by_id}: {e}")
 
     await send_main_menu(update, context)
 
@@ -230,7 +257,7 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == 'show_balance':
         await query.edit_message_text(
             f"💰 Your balance: ₹{int(user['balance'])}\n\n"
-            f"👥 Total Referrals: {user['referral_count']}\n",
+            f"👥 Total Referrals: {len(user['referrals'])}\n",
             reply_markup=get_back_button_keyboard()
         )
 
@@ -258,7 +285,7 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             f"👥 Share your referral link:\n`{link}`\n\n"
             f"Earn ₹{REFERRAL_REWARD} per referral!\n"
-            f"You have referred {user['referral_count']} friend(s).",
+            f"You have referred {len(user['referrals'])} friend(s).",
             reply_markup=get_back_button_keyboard(),
             parse_mode='Markdown'
         )
