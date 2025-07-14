@@ -301,7 +301,7 @@ async def run_bot():
     global application
 
     init_db()  # Initialize DB
-    application = Application.builder().token("YOUR_BOT_TOKEN_HERE").build()
+    application = Application.builder().token("7950712207:AAHMIek-JXLy6fLrQMBHk-2hzFXdY1d0HG8").build()
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(handle_buttons))
