@@ -18,7 +18,7 @@ BONUS_AMOUNT = 1
 REFERRAL_REWARD = 5
 WITHDRAW_THRESHOLD = 50
 CHANNEL_LINK = "https://t.me/dailyearn11"
-CHECK_CHANNEL_ID = -1001441974665
+CHECK_CHANNEL_ID = -1001441974665  
 
 # --- Database Configuration ---
 DB_NAME = 'bot_data.db'
@@ -56,8 +56,7 @@ def get_user_data(user_id: int):
 
             # Count referrals dynamically from users.ref_by
             cursor.execute('SELECT COUNT(*) FROM users WHERE ref_by = ?', (user_id,))
-            referral_count = cursor.fetchone()[0]
-            user_data['referral_count'] = referral_count
+            user_data['referral_count'] = cursor.fetchone()[0]
             return user_data
         return None
 
@@ -66,10 +65,8 @@ def create_user(user_id: int, ref_by: int = None):
     """Creates a new user entry in the database."""
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
-        cursor.execute(
-            'INSERT OR IGNORE INTO users (user_id, balance, last_bonus, ref_by) VALUES (?, ?, ?, ?)',
-            (user_id, 0, None, ref_by)
-        )
+        cursor.execute('INSERT INTO users (user_id, balance, last_bonus, ref_by) VALUES (?, ?, ?, ?)',
+                       (user_id, 0, None, ref_by))
         conn.commit()
 
 
@@ -85,10 +82,8 @@ def update_user_last_bonus(user_id: int, last_bonus_time: datetime):
     """Updates a user's last bonus timestamp in the database."""
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
-        cursor.execute(
-            'UPDATE users SET last_bonus = ? WHERE user_id = ?',
-            (last_bonus_time.isoformat(), user_id)
-        )
+        cursor.execute('UPDATE users SET last_bonus = ? WHERE user_id = ?',
+                       (last_bonus_time.isoformat(), user_id))
         conn.commit()
 
 
