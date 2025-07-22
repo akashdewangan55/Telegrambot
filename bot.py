@@ -95,16 +95,16 @@ async def get_main_menu_keyboard(user_id: int):
 
     if not is_member:
         keyboard = [
-            [InlineKeyboardButton("âœ… Join Channel to Start", url=CHANNEL_LINK)],
-            [InlineKeyboardButton("ðŸ”„ I have joined!", callback_data='check_membership')],
+            [InlineKeyboardButton("✅ Join Channel to Start", url=CHANNEL_LINK)],
+            [InlineKeyboardButton("🔄 I have joined!", callback_data='check_membership')],
         ]
     else:
         keyboard = [
-            [InlineKeyboardButton("ðŸ’° Balance", callback_data='show_balance'),
-             InlineKeyboardButton("ðŸŽ Daily Bonus", callback_data='claim_bonus')],
-            [InlineKeyboardButton("ðŸ‘¥ Referral Link", callback_data='show_referral'),
-             InlineKeyboardButton("ðŸ’¸ Withdraw", callback_data='show_withdraw')],
-            [InlineKeyboardButton("â„¹ï¸ How to Earn", callback_data='show_info')]
+            [InlineKeyboardButton("💰 Balance", callback_data='show_balance'),
+             InlineKeyboardButton("🎁 Daily Bonus", callback_data='claim_bonus')],
+            [InlineKeyboardButton("👥 Referral Link", callback_data='show_referral'),
+             InlineKeyboardButton("💸 Withdraw", callback_data='show_withdraw')],
+            [InlineKeyboardButton("ℹ️ How to Earn", callback_data='show_info')]
         ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -112,7 +112,7 @@ async def get_main_menu_keyboard(user_id: int):
 def get_back_button_keyboard():
     """Generates a keyboard with only a 'Back' button."""
     keyboard = [
-        [InlineKeyboardButton("â¬…ï¸ Back to Main Menu", callback_data='main_menu')]
+        [InlineKeyboardButton("⬅️ Back to Main Menu", callback_data='main_menu')]
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -136,11 +136,11 @@ async def send_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, mes
 
     if message_text is None:
         message_text = (
-            f"ðŸ‘‹ Welcome {update.effective_user.first_name}!\n\n"
-            "ðŸ’¸ Earn â‚¹5 per referral.\n"
-            "ðŸŽ Claim daily bonus.\n"
-            "ðŸ’° Withdraw when balance â‰¥ â‚¹50.\n\n"
-            "ðŸ‘‡ Choose an option:"
+            f"👋 Welcome {update.effective_user.first_name}!\n\n"
+            "💸 Earn ₹5 per referral.\n"
+            "🎁 Claim daily bonus.\n"
+            "💰 Withdraw when balance ≥ ₹50.\n\n"
+            "👇 Choose an option:"
         )
 
     if update.callback_query:
@@ -180,11 +180,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if referrer_data:
                 new_referrer_balance = referrer_data['balance'] + REFERRAL_REWARD
                 update_user_balance(ref_by_id, new_referrer_balance)
-                logging.info(f"Referral: {ref_by_id} earned â‚¹{REFERRAL_REWARD} for referring {user_id}")
+                logging.info(f"Referral: {ref_by_id} earned ₹{REFERRAL_REWARD} for referring {user_id}")
                 try:
                     await application.bot.send_message(
                         chat_id=ref_by_id,
-                        text=f"ðŸŽ‰ Congratulations! Your friend {update.effective_user.first_name} ({user_id}) joined using your link and you earned â‚¹{REFERRAL_REWARD}!"
+                        text=f"🎉 Congratulations! Your friend {update.effective_user.first_name} ({user_id}) joined using your link and you earned ₹{REFERRAL_REWARD}!"
                     )
                 except Exception as e:
                     logging.error(f"Could not send referral message to {ref_by_id}: {e}")
@@ -208,7 +208,7 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_member and query.data != 'check_membership':
         keyboard = await get_main_menu_keyboard(user_id)
         await query.edit_message_text(
-            "ðŸ›‘ You must join our channel to use the bot features.",
+            "🛑 You must join our channel to use the bot features.",
             reply_markup=keyboard
         )
         return
@@ -218,19 +218,19 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
             is_member_after_check = await is_user_member(user_id, CHECK_CHANNEL_ID)
             if not is_member_after_check:
                 await query.edit_message_text(
-                    "âŒ Please join the channel and try again.",
+                    "❌ Please join the channel and try again.",
                     reply_markup=await get_main_menu_keyboard(user_id)
                 )
                 return
             else:
-                await send_main_menu(update, context, "âœ… Thank you for joining! You can now use the bot.")
+                await send_main_menu(update, context, "✅ Thank you for joining! You can now use the bot.")
         else:
             await send_main_menu(update, context)
 
     elif query.data == 'show_balance':
         await query.edit_message_text(
-            f"ðŸ’° Your balance: â‚¹{int(user['balance'])}\n\n"
-            f"ðŸ‘¥ Total Referrals: {user['referral_count']}\n",
+            f"💰 Your balance: ₹{int(user['balance'])}\n\n"
+            f"👥 Total Referrals: {user['referral_count']}\n",
             reply_markup=get_back_button_keyboard()
         )
 
@@ -241,7 +241,7 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
             update_user_balance(user_id, new_balance)
             update_user_last_bonus(user_id, now)
             await query.edit_message_text(
-                "ðŸŽ Bonus received! â‚¹1 added to your balance.",
+                "🎁 Bonus received! ₹1 added to your balance.",
                 reply_markup=get_back_button_keyboard()
             )
         else:
@@ -249,15 +249,15 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
             hours, remainder = divmod(int(time_left.total_seconds()), 3600)
             minutes, seconds = divmod(remainder, 60)
             await query.edit_message_text(
-                f"â³ Already claimed. Come back in {hours}h {minutes}m.",
+                f"⏳ Already claimed. Come back in {hours}h {minutes}m.",
                 reply_markup=get_back_button_keyboard()
             )
 
     elif query.data == 'show_referral':
         link = f"https://t.me/{application.bot.username}?start={user_id}"
         await query.edit_message_text(
-            f"ðŸ‘¥ Share your referral link:\n`{link}`\n\n"
-            f"Earn â‚¹{REFERRAL_REWARD} per referral!\n"
+            f"👥 Share your referral link:\n`{link}`\n\n"
+            f"Earn ₹{REFERRAL_REWARD} per referral!\n"
             f"You have referred {user['referral_count']} friend(s).",
             reply_markup=get_back_button_keyboard(),
             parse_mode='Markdown'
@@ -267,23 +267,23 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if user['balance'] >= WITHDRAW_THRESHOLD:
             update_user_balance(user_id, 0)
             await query.edit_message_text(
-                "âœ… Withdrawal requested!\n"
-                f"Your â‚¹{WITHDRAW_THRESHOLD} will be processed soon.",
+                "✅ Withdrawal requested!\n"
+                f"Your ₹{WITHDRAW_THRESHOLD} will be processed soon.",
                 reply_markup=get_back_button_keyboard()
             )
             logging.info(f"Withdrawal requested by user {user_id}")
         else:
             await query.edit_message_text(
-                f"âŒ Minimum â‚¹{WITHDRAW_THRESHOLD} required to withdraw. Your balance: â‚¹{int(user['balance'])}",
+                f"❌ Minimum ₹{WITHDRAW_THRESHOLD} required to withdraw. Your balance: ₹{int(user['balance'])}",
                 reply_markup=get_back_button_keyboard()
             )
 
     elif query.data == 'show_info':
         await query.edit_message_text(
-            "ðŸ“– *How to Earn:*\n\n"
-            "1ï¸âƒ£ ðŸŽ Daily bonus (â‚¹1/day)\n"
-            "2ï¸âƒ£ ðŸ‘¥ Refer friends (â‚¹5 each)\n"
-            "3ï¸âƒ£ ðŸ’¸ Withdraw when balance â‰¥ â‚¹50\n\n"
+            "📖 *How to Earn:*\n\n"
+            "1️⃣ 🎁 Daily bonus (₹1/day)\n"
+            "2️⃣ 👥 Refer friends (₹5 each)\n"
+            "3️⃣ 💸 Withdraw when balance ≥ ₹50\n\n"
             "Tap buttons below to start earning.",
             reply_markup=get_back_button_keyboard(),
             parse_mode='Markdown'
@@ -301,7 +301,7 @@ async def run_bot():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(handle_buttons))
 
-    print("ðŸ¤– Bot is running...")
+    print("🤖 Bot is running...")
     await application.initialize()
     await application.start()
     await application.updater.start_polling()
@@ -315,7 +315,7 @@ if __name__ == "__main__":
         asyncio.run(run_bot())
     except RuntimeError as e:
         if "already running" in str(e):
-            print("âš ï¸ Event loop already running. Using create_task().")
+            print("⚠️ Event loop already running. Using create_task().")
             asyncio.create_task(run_bot())
         else:
             raise
